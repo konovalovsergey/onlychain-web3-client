@@ -9,8 +9,7 @@ var g_contract;
 var g_contractAddress;
 var g_defaultAccount;
 var g_defaultAccountPassphrase;
-var g_createDocumentCallbacks = {};
-var g_createDocumentCallbacksCount = 0;
+var g_transactionCallbacks = {};
 
 function setServer(serverUrl, opt_contractAbi, opt_contractAddress) {
 	const contractAbi = opt_contractAbi ? opt_contractAbi : contractInfo.contractAbi;
@@ -42,31 +41,20 @@ function writeFile(name, data, thumbnail, callback) {
 		if (error) {
 			callback(error);
 		} else {
-			if (0 == g_createDocumentCallbacksCount) {
-				var event = g_contract.CreateDocumentEvent(null, null, function(error, result) {
-					if (error) {
-						console.log(error);
-					} else {
-						var callback = g_createDocumentCallbacks[result.transactionHash];
-						if (callback) {
-							delete g_createDocumentCallbacks[result.transactionHash];
-							g_createDocumentCallbacksCount--;
-							if (0 == g_createDocumentCallbacksCount) {
-								event.stopWatching();
-							}
-							callback(undefined, result.args['docId']);
-						}
-					}
-				});
-			}
-			g_createDocumentCallbacksCount++;
-			g_createDocumentCallbacks[result] = function(error, docId) {
+			_waitForTx(result, function(error) {
 				if (error) {
 					callback(error);
 				} else {
-					_writeChunks(docId, data, thumbnail, 0, callback);
+					getFilesCount(function(error, result){
+						if (error) {
+							callback(error);
+						} else {
+							_writeChunks(result - 1, data, thumbnail, 0, callback);
+						}
+					})
+
 				}
-			};
+			});
 		}
 	});
 }
@@ -130,8 +118,8 @@ function _writeChunks(docId, data, thumbnail, index, callback) {
 			} else if (null != data) {
 				_writeChunks(docId, null, thumbnail, 0, callback);
 			} else {
-				_waitForTx(result, function() {
-					callback(undefined, docId);
+				_waitForTx(result, function(error) {
+					callback(error, docId);
 				});
 			}
 		}
@@ -196,14 +184,35 @@ function _assembleChunks(metaStr, chunks) {
 	return res;
 }
 function _waitForTx(txhash, callback) {
+	g_transactionCallbacks[txhash] = callback;
 	const filter = g_web3.eth.filter('latest');
 	filter.watch(function(error, result) {
-		const receipt = g_web3.eth.getTransactionReceipt(txhash);
-		if (receipt && receipt.transactionHash == txhash) {
-			filter.stopWatching();
-			if (callback) {
-				callback(undefined, receipt);
+		if (error) {
+			var _callback = g_transactionCallbacks[txhash];
+			if(_callback){
+				delete g_transactionCallbacks[txhash];
+				_callback(error);
 			}
+		} else {
+			g_web3.eth.getTransactionReceipt(txhash, function(error, result){
+				if (error) {
+					var _callback = g_transactionCallbacks[txhash];
+					if(_callback){
+						delete g_transactionCallbacks[txhash];
+						_callback(error);
+					}
+				} else {
+					if (result && result.transactionHash == txhash) {
+						filter.stopWatching();
+						var _callback = g_transactionCallbacks[txhash];
+						if(_callback){
+							delete g_transactionCallbacks[txhash];
+							_callback(undefined, result);
+						}
+					}
+				}
+			});
+			
 		}
 	});
 }
