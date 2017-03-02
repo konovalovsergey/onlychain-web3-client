@@ -9,6 +9,8 @@ var g_contract;
 var g_contractAddress;
 var g_defaultAccount;
 var g_defaultAccountPassphrase;
+var g_createDocumentCallbacks = {};
+var g_createDocumentCallbacksCount = 0;
 var g_transactionCallbacks = {};
 
 function setServer(serverUrl, opt_contractAbi, opt_contractAddress) {
@@ -41,20 +43,33 @@ function writeFile(name, data, thumbnail, callback) {
 		if (error) {
 			callback(error);
 		} else {
-			_waitForTx(result, function(error) {
-				if (error) {
-					callback(error);
-				} else {
-					getFilesCount(function(error, result){
-						if (error) {
-							callback(error);
-						} else {
-							_writeChunks(result - 1, data, thumbnail, 0, callback);
+			if (0 == g_createDocumentCallbacksCount) {
+				var event = g_contract.DocumentEvent(null, null, function(error, result) {
+					if (error) {
+						console.log(error);
+					} else {
+						var _callback = g_createDocumentCallbacks[result.transactionHash];
+						if (_callback) {
+							delete g_createDocumentCallbacks[result.transactionHash];
+							g_createDocumentCallbacksCount--;
+							if (0 == g_createDocumentCallbacksCount) {
+								event.stopWatching();
+							}
+							_callback(undefined, result.args['docId']);
 						}
-					})
-
-				}
-			});
+					}
+				});
+			}
+			if (!g_createDocumentCallbacks[result]) {
+				g_createDocumentCallbacksCount++;
+				g_createDocumentCallbacks[result] = function(error, docId) {
+					if (error) {
+						callback(error);
+					} else {
+						_writeChunks(docId, data, thumbnail, 0, callback);
+					}
+				};
+			}
 		}
 	});
 }
