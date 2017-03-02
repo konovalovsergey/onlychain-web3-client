@@ -4,6 +4,8 @@ const cluster = require('cluster');
 const randomstring = require('randomstring');
 const Contract = require('./index');
 
+var g_recordMined = 0;
+
 if (process.argv.length >= 9) {
 	const serverUrl = process.argv[2];
 	const account = process.argv[3];
@@ -32,8 +34,8 @@ if (process.argv.length >= 9) {
 				process.exit();
 			} else {
 				console.log('getFilesCount:' + result);
-				if (wait) {
-					createRecords(filesCount, result, fileSize, function(error) {
+				if (0 == wait || 1 == wait) {
+					createRecords(filesCount, filesCount, result, fileSize, wait, function(error) {
 						if (error) {
 							console.log(error);
 						} else {
@@ -50,7 +52,7 @@ if (process.argv.length >= 9) {
 							if (error) {
 								console.log(error);
 							} else {
-								console.log('createRecords:' + (Date.now() - start));
+								console.log('recordMined:' + (Date.now() - start));
 							}
 							counter++;
 							if (counter >= filesCount) {
@@ -73,19 +75,35 @@ process.on('uncaughtException', (err) => {
 	process.exit();
 });
 
-function createRecords(count, templatesCount, fileSize, callback) {
+function createRecords(count, filesCount, templatesCount, fileSize, wait, callback) {
 	if (count > 0) {
 		let start = Date.now();
-		Contract.createRecord(getRandomInt(0, templatesCount), randomstring.generate(fileSize), function(error) {
+		let callback1 = function() {
+			g_recordMined++;
+			console.log('recordMined:' + g_recordMined);
+			if (g_recordMined >= filesCount) {
+				callback();
+			}
+		};
+		let callback2 = function(error) {
 			if (error) {
 				callback(error);
 			} else {
 				console.log('createRecords:' + (Date.now() - start));
-				createRecords(count - 1, templatesCount, fileSize, callback);
+				createRecords(count - 1, filesCount, templatesCount, fileSize, wait, callback);
 			}
-		});
+		};
+		if (wait) {
+			callback1 = callback2;
+			callback2 = null;
+		}
+		Contract.createRecord(getRandomInt(0, templatesCount), randomstring.generate(fileSize), callback1, callback2);
 	} else {
-		callback();
+		if (wait) {
+			callback();
+		} else {
+			console.log('wait mining');
+		}
 	}
 }
 

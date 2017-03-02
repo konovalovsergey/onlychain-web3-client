@@ -94,10 +94,13 @@ function getFilesCount(callback) {
 	g_contract.documentsCount(callback);
 }
 
-function createRecord(docId, data, callback) {
+function createRecord(docId, data, callback, opt_callbackSendTransaction) {
 	//docId++;//todo starts with 1
 	const createRecordData = g_contract.createRecord.getData(docId, data);
 	personalSendTransaction(createRecordData, function(error, result) {
+		if (opt_callbackSendTransaction) {
+			opt_callbackSendTransaction(error, callback);
+		}
 		if (error) {
 			callback(error);
 		} else {
