@@ -19,6 +19,7 @@ if (process.argv.length >= 9) {
   }
   let funcName;
   let isByte = false;
+  let isIterable = false;
   switch (type) {
     case 0:
       funcName = 'mapStrings';
@@ -30,9 +31,13 @@ if (process.argv.length >= 9) {
     case 2:
       funcName = 'arrayStrings';
       break;
-    default:
+    case 3:
       funcName = 'arrayBytes';
       isByte = true;
+      break;
+    default:
+      funcName = 'iterableMapping';
+      isIterable = true;
       break;
   }
 
@@ -47,6 +52,7 @@ if (process.argv.length >= 9) {
     console.log('process.argv:' + JSON.stringify(process.argv));
     console.log('funcName:' + funcName);
     console.log('isByte:' + isByte);
+    console.log('isIterable:' + isIterable);
   } else {
     const serverIndex = cluster.worker.id % serverUrls.length;
     const serverUrl = serverUrls[serverIndex];
@@ -55,7 +61,7 @@ if (process.argv.length >= 9) {
     Contract.setServer(serverUrl);
     Contract.setAccount(account, accountPassphrase);
 
-    addElems(funcName, isByte, outputFile, 0, filesCount, fileSize, function(error) {
+    addElems(funcName, isByte, isIterable, outputFile, 0, filesCount, fileSize, function(error) {
       if (error) {
         console.log(error);
       }
@@ -73,9 +79,9 @@ process.on('uncaughtException', (err) => {
   process.exit();
 });
 
-function addElems(funcName, isByte, outputFile, index, filesCount, fileSize, callback) {
+function addElems(funcName, isByte, isIterable, outputFile, index, filesCount, fileSize, callback) {
   if (index < filesCount) {
-    const val = 'worker:' + cluster.worker.id + ';index:' + index + ';';
+    const val = 'worker:' + cluster.worker.id + ';index:' + index + ';time:' + Date.now();
     const valRepeat = val.repeat(Math.ceil(fileSize / val.length));
     var data = isByte ? uint8ToArray(new Buffer(valRepeat)) : valRepeat;
     let start = Date.now();
@@ -84,13 +90,14 @@ function addElems(funcName, isByte, outputFile, index, filesCount, fileSize, cal
       if (error) {
         callback(error);
       } else {
-        let line = 'docId:' + result + ',worker.id:' + cluster.worker.id + ',"' + val + '",length:' + data.length;
+        var docId = isIterable ? '0x'+result.toString(16) : result.toString();
+        let line = 'docId:' + docId + ',worker.id:' + cluster.worker.id + ',"' + val + '",length:' + data.length;
         console.log((Date.now() - start) + 'ms,' + line);
         fs.appendFile(outputFile, line + os.EOL, function(error) {
           if (error) {
             callback(error);
           } else {
-            addElems(funcName, isByte, outputFile, index + 1, filesCount, fileSize, callback);
+            addElems(funcName, isByte, isIterable, outputFile, index + 1, filesCount, fileSize, callback);
           }
         });
       }
