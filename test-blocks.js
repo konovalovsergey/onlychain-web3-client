@@ -17,34 +17,38 @@ Contract.getWeb3().eth.getBlockNumber(function(error, blockCount) {
     console.log(error);
   } else {
     console.log('getBlockCount:' + blockCount);
-    findInBlocks(1, blockCount, txhashes);
+    findInBlocks(blockCount, txhashes);
   }
 });
-function findInBlocks(blockNumber, blockCount) {
-  if (blockNumber <= blockCount) {
-    Contract.getWeb3().eth.getBlock(blockNumber, function(error, block) {
+function findInBlocks(blockCount) {
+  if (blockCount > 0) {
+    Contract.getWeb3().eth.getBlock(blockCount, function(error, block) {
       if (error) {
         console.log(error);
       } else {
-        console.log('blockNumber:' + blockNumber + ";transactions.length:" + block.transactions.length);
-        //console.log('blockNumber:' + blockNumber + ";transactions:" + JSON.stringify(block.transactions));
-        for (let i = 0; i < txhashes.length; ++i) {
+        console.log('blockNumber:' + blockCount + ";transactions.length:" + block.transactions.length);
+        for (let i = txhashes.length - 1; i >= 0; --i) {
           const txhash = txhashes[i];
           if (block.transactions.indexOf(txhash) > -1) {
             console.log('txhash:' + txhash + "is transactions in blockInfo " + getBlockInfo(block));
+            txhashes.splice(i, 1);
+          }
+          if (0 == txhashes.length) {
+            console.log('end');
+            process.exit();
           }
         }
         if (block.uncles.length > 0) {
-          console.log('blockNumber:' + blockNumber + ";uncles:" + JSON.stringify(block.uncles));
+          console.log('blockNumber:' + blockCount + ";uncles:" + JSON.stringify(block.uncles));
           findInUncles(0, block.uncles, block, function(error) {
             if (error) {
               console.log(error);
             } else {
-              findInBlocks(blockNumber + 1, blockCount);
+              findInBlocks(blockCount - 1);
             }
           });
         } else {
-          findInBlocks(blockNumber + 1, blockCount);
+          findInBlocks(blockCount - 1);
         }
       }
     });
@@ -58,18 +62,23 @@ function findInUncles(uncleNumber, uncles, parentBlock, callback) {
       if (error) {
         callback(error);
       } else {
-        for (let i = 0; i < txhashes.length; ++i) {
+        console.log('uncle index:' + uncleNumber + ";blockInfo:" + getBlockInfo(block));
+        for (let i = txhashes.length - 1; i >= 0; --i) {
           const txhash = txhashes[i];
           if (block.transactions.indexOf(txhash) > -1) {
             console.log('txhash:' + txhash + "is uncle in blockInfo " + getBlockInfo(block) + ';parent blockInfo ' +
                         getBlockInfo(parentBlock));
           }
         }
-        findInUncles(uncleNumber + 1, uncles, parentBlock);
+        if (0 == txhashes.length) {
+          console.log('end');
+          process.exit();
+        }
+        findInUncles(uncleNumber + 1, uncles, parentBlock, callback);
       }
     });
   } else {
-    console.log('end');
+    callback();
   }
 }
 function getBlockInfo(block) {
