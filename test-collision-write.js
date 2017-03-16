@@ -86,12 +86,12 @@ function addElems(funcName, isByte, isIterable, outputFile, index, filesCount, f
     var data = isByte ? uint8ToArray(new Buffer(valRepeat)) : valRepeat;
     let start = Date.now();
     console.log('start add');
-    Contract[funcName + "Add"](data, function(error, result) {
+    Contract[funcName + "Add"](data, function(error, result, txhash) {
       if (error) {
         callback(error);
       } else {
         var docId = isIterable ? '0x'+result.toString(16) : result.toString();
-        let line = 'docId:' + docId + ',worker.id:' + cluster.worker.id + ',"' + val + '",length:' + data.length;
+        let line = 'docId:' + docId + ',worker.id:' + cluster.worker.id + ',"' + val + '",length:' + data.length + ',txhash:'+txhash;
         console.log((Date.now() - start) + 'ms,' + line);
         fs.appendFile(outputFile, line + os.EOL, function(error) {
           if (error) {

@@ -13,6 +13,7 @@ var g_defaultAccountPassphrase;
 var g_createDocumentCallbacks = {};
 var g_createDocumentCallbackTimeouts = {};
 var g_createDocumentCallbacksCount = 0;
+var g_documentEvent;
 var g_transactionCallbacks = {};
 var g_transactionCallbackTimeouts = {};
 
@@ -46,7 +47,9 @@ function mapStringsAdd(val, callback) {
     if (error) {
       callback(error);
     } else {
-      _waitForEvent(result, callback);
+      _waitForEvent(result, function(error, docId){
+        callback(error, docId, result);
+      });
     }
   });
 }
@@ -56,7 +59,9 @@ function mapBytesAdd(val, callback) {
     if (error) {
       callback(error);
     } else {
-      _waitForEvent(result, callback);
+      _waitForEvent(result, function(error, docId){
+        callback(error, docId, result);
+      });
     }
   });
 }
@@ -66,7 +71,9 @@ function arrayStringsAdd(val, callback) {
     if (error) {
       callback(error);
     } else {
-      _waitForEvent(result, callback);
+      _waitForEvent(result, function(error, docId){
+        callback(error, docId, result);
+      });
     }
   });
 }
@@ -76,7 +83,9 @@ function arrayBytesAdd(val, callback) {
     if (error) {
       callback(error);
     } else {
-      _waitForEvent(result, callback);
+      _waitForEvent(result, function(error, docId){
+        callback(error, docId, result);
+      });
     }
   });
 }
@@ -89,7 +98,7 @@ function iterableMappingAdd(val, callback) {
       callback(error);
     } else {
       _waitForTx(result, function(error){
-        callback(error, hash);
+        callback(error, hash, result);
       });
     }
   });
@@ -132,7 +141,7 @@ function iterableMappingLength(callback) {
 
 function _waitForEvent(txhash, callback) {
   if (0 == g_createDocumentCallbacksCount) {
-    let event = g_contract.DocumentEvent(null, null, function(error, result) {
+    g_documentEvent = g_contract.DocumentEvent(null, null, function(error, result) {
       if (error) {
         console.log(error);
       } else {
@@ -142,7 +151,7 @@ function _waitForEvent(txhash, callback) {
           delete g_createDocumentCallbacks[result.transactionHash];
           g_createDocumentCallbacksCount--;
           if (0 == g_createDocumentCallbacksCount) {
-            event.stopWatching();
+            g_documentEvent.stopWatching();
           }
           _callback(undefined, result.args['docId']);
         }
@@ -158,7 +167,7 @@ function _waitForEvent(txhash, callback) {
         delete g_createDocumentCallbacks[txhash];
         g_createDocumentCallbacksCount--;
         if (0 == g_createDocumentCallbacksCount) {
-          event.stopWatching();
+          g_documentEvent.stopWatching();
         }
         _callback(new Error('Event Timeout'));
       }
@@ -171,7 +180,7 @@ function _waitForTx(txhash, callback) {
     var _callback = g_transactionCallbacks[txhash];
     if(_callback){
       delete g_transactionCallbacks[txhash];
-      _callback(new Error("Transaction Timeout"));
+      _callback(new Error("Transaction Timeout. txhash:" + txhash));
     }
   }, TIMEOUT);
   const filter = g_web3.eth.filter('latest');
