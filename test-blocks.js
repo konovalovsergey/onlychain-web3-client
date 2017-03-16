@@ -54,7 +54,7 @@ function findInBlocks(blockNumber, blockCount) {
 }
 function findInUncles(uncleNumber, uncles, parentBlock, callback) {
   if (uncleNumber < uncles.length) {
-    Contract.getWeb3().getUncle(parentBlock.number, uncleNumber, function(error, block) {
+    Contract.getWeb3().eth.getUncle(parentBlock.number, uncleNumber, function(error, block) {
       if (error) {
         callback(error);
       } else {
