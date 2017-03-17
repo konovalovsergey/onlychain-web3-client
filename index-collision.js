@@ -163,7 +163,16 @@ function addressArrayLength(callback) {
 }
 
 function incr(callback) {
-  g_contract.incr(callback);
+  const data = g_contract.incr.getData();
+  personalSendTransaction(data, function(error, result) {
+    if (error) {
+      callback(error);
+    } else {
+      _waitForTx(result, function(error){
+        callback(error);
+      });
+    }
+  });
 }
 function incrLength(callback) {
   g_contract.incrLength(callback);
