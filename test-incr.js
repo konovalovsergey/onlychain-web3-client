@@ -5,7 +5,10 @@ const fs = require('fs');
 const os = require('os');
 const Contract = require('./index-collision');
 
-if (process.argv.length >= 9) {
+let g_Errors = 0;
+let g_Starts = 0;
+
+if (process.argv.length >= 6) {
   const threadsCount = parseInt(process.argv[2]);
   let filesCount = parseInt(process.argv[3]);
   let serverParams = [];
@@ -38,6 +41,9 @@ if (process.argv.length >= 9) {
       if (error) {
         console.log(error);
       }
+      
+      console.log('g_Starts:'+g_Starts);
+      console.log('g_Errors:'+g_Errors);
       console.log('end');
       process.exit();
     });
@@ -56,13 +62,14 @@ function incr(filesCount, callback) {
   if (filesCount > 0) {
     let start = Date.now();
     console.log('start incr');
+    g_Starts++;
     Contract.incr(function(error){
-      console.log('end incr:' + (Date.now() - start) + 'ms');
+      console.log('end incr:' + (Date.now() - start) + 'ms; cluster.worker.id:' + cluster.worker.id);
       if(error){
-        callback(error);
-      } else {
-        incr(filesCount - 1, callback);
+        console.log(error);
+        g_Errors++;
       }
+      incr(filesCount - 1, callback);
     });
   } else {
     callback();
