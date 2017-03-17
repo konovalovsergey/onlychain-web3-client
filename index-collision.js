@@ -103,6 +103,20 @@ function iterableMappingAdd(val, callback) {
     }
   });
 }
+function addressArrayAdd(val, callback) {
+  const hexString = g_web3.sha3(val);
+  const hash = g_web3.toBigNumber(hexString);
+  const data = g_contract.addAddressArray.getData(hash, val);
+  personalSendTransaction(data, function(error, result) {
+    if (error) {
+      callback(error);
+    } else {
+      _waitForTx(result, function(error){
+        callback(error, hash, result);
+      });
+    }
+  });
+}
 
 function mapStrings(index, callback) {
   g_contract.mapStrings(index, callback);
@@ -122,6 +136,12 @@ function iterableMapping(hash, callback) {
 function getIterableMapping(index, callback) {
   g_contract.getIterableMapping(index, callback);
 }
+function addressArray(hash, callback) {
+  g_contract.addressArray(hash, callback);
+}
+function getAddressArray(index, callback) {
+  g_contract.getAddressArray(index, callback);
+}
 
 function mapStringsLength(callback) {
   g_contract.mapStringsLength(callback);
@@ -137,6 +157,16 @@ function arrayBytesLength(callback) {
 }
 function iterableMappingLength(callback) {
   g_contract.iterableMappingLength(callback);
+}
+function addressArrayLength(callback) {
+  g_contract.addressArrayLength(callback);
+}
+
+function incr(callback) {
+  g_contract.incr(callback);
+}
+function incrLength(callback) {
+  g_contract.incrLength(callback);
 }
 
 function _waitForEvent(txhash, callback) {
@@ -169,7 +199,7 @@ function _waitForEvent(txhash, callback) {
         if (0 == g_createDocumentCallbacksCount) {
           g_documentEvent.stopWatching();
         }
-        _callback(new Error('Event Timeout'));
+        _callback(new Error('Event Timeout;txhash:'+txhash));
       }
     }, TIMEOUT)
   }
@@ -234,6 +264,7 @@ module.exports.mapBytesAdd = mapBytesAdd;
 module.exports.arrayStringsAdd = arrayStringsAdd;
 module.exports.arrayBytesAdd = arrayBytesAdd;
 module.exports.iterableMappingAdd = iterableMappingAdd;
+module.exports.addressArrayAdd = addressArrayAdd;
 
 module.exports.mapStrings = mapStrings;
 module.exports.mapBytes = mapBytes;
@@ -241,9 +272,15 @@ module.exports.arrayStrings = arrayStrings;
 module.exports.arrayBytes = arrayBytes;
 module.exports.iterableMapping = iterableMapping;
 module.exports.getIterableMapping = getIterableMapping;
+module.exports.addressArray = addressArray;
+module.exports.getAddressArray = getAddressArray;
 
 module.exports.mapStringsLength = mapStringsLength;
 module.exports.mapBytesLength = mapBytesLength;
 module.exports.arrayStringsLength = arrayStringsLength;
 module.exports.arrayBytesLength = arrayBytesLength;
 module.exports.iterableMappingLength = iterableMappingLength;
+module.exports.addressArrayLength = addressArrayLength;
+
+module.exports.incr = incr;
+module.exports.incrLength = incrLength;

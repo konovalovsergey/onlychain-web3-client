@@ -27,9 +27,13 @@ switch (type) {
     funcName = 'arrayBytes';
     isByte = true;
     break;
-  default:
+  case 4:
     funcName = 'iterableMapping';
-    isIterable = true;
+    isIterable = 'getIterableMapping';
+    break;
+  default:
+    funcName = 'addressArray';
+    isIterable = 'getAddressArray';
     break;
 }
 console.log('funcName:' + funcName);
@@ -90,7 +94,7 @@ function checkFiles(index){
 }
 function findErrors(index, count){
   if(index < count){
-    var funcNameCur = isIterable ? 'getIterableMapping' : funcName;
+    var funcNameCur = isIterable ? isIterable : funcName;
     Contract[funcNameCur](index, function(error, result) {
       if (error) {
         console.log(error);

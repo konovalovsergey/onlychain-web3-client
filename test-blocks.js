@@ -58,21 +58,23 @@ function findInBlocks(blockCount) {
 }
 function findInUncles(uncleNumber, uncles, parentBlock, callback) {
   if (uncleNumber < uncles.length) {
-    Contract.getWeb3().eth.getUncle(parentBlock.number, uncleNumber, function(error, block) {
+    Contract.getWeb3().eth.getBlock(uncles[uncleNumber], function(error, block) {
       if (error) {
         callback(error);
       } else {
-        console.log('uncle index:' + uncleNumber + ";blockInfo:" + getBlockInfo(block));
-        for (let i = txhashes.length - 1; i >= 0; --i) {
-          const txhash = txhashes[i];
-          if (block.transactions.indexOf(txhash) > -1) {
-            console.log('txhash:' + txhash + "is uncle in blockInfo " + getBlockInfo(block) + ';parent blockInfo ' +
-                        getBlockInfo(parentBlock));
+        if(block){
+          console.log('uncle index:' + uncleNumber + ";blockInfo:" + getBlockInfo(block));
+          for (let i = txhashes.length - 1; i >= 0; --i) {
+            const txhash = txhashes[i];
+            if (block.transactions.indexOf(txhash) > -1) {
+              console.log('txhash:' + txhash + "is uncle in blockInfo " + getBlockInfo(block) + ';parent blockInfo ' +
+                          getBlockInfo(parentBlock));
+            }
           }
-        }
-        if (0 == txhashes.length) {
-          console.log('end');
-          process.exit();
+          if (0 == txhashes.length) {
+            console.log('end');
+            process.exit();
+          }
         }
         findInUncles(uncleNumber + 1, uncles, parentBlock, callback);
       }

@@ -7,15 +7,13 @@ const Contract = require('./index-collision');
 
 if (process.argv.length >= 9) {
   const outputFile = process.argv[2];
-  const account = process.argv[3];
-  const accountPassphrase = process.argv[4];
-  const type = parseInt(process.argv[5]);
-  const threadsCount = parseInt(process.argv[6]);
-  const filesCount = parseInt(process.argv[7]);
-  const fileSize = parseInt(process.argv[8]);
-  let serverUrls = [];
-  for (let i = 9; i < process.argv.length; ++i) {
-    serverUrls.push(process.argv[i]);
+  const type = parseInt(process.argv[3]);
+  const threadsCount = parseInt(process.argv[4]);
+  const filesCount = parseInt(process.argv[5]);
+  const fileSize = parseInt(process.argv[6]);
+  let serverParams = [];
+  for (let i = 7; i + 2 < process.argv.length; i += 3) {
+    serverParams.push([process.argv[i], process.argv[i + 1], process.argv[i + 2]]);
   }
   let funcName;
   let isByte = false;
@@ -35,8 +33,12 @@ if (process.argv.length >= 9) {
       funcName = 'arrayBytes';
       isByte = true;
       break;
-    default:
+    case 4:
       funcName = 'iterableMapping';
+      isIterable = true;
+      break;
+    default:
+      funcName = 'addressArray';
       isIterable = true;
       break;
   }
@@ -48,15 +50,19 @@ if (process.argv.length >= 9) {
     cluster.on('exit', (worker, code, signal) => {
       console.log('worker %s died (code = %s; signal = %s).', worker.process.pid, code, signal);
     });
-    console.log('serverUrls:' + JSON.stringify(serverUrls));
+    console.log('serverParams:' + JSON.stringify(serverParams));
     console.log('process.argv:' + JSON.stringify(process.argv));
     console.log('funcName:' + funcName);
     console.log('isByte:' + isByte);
     console.log('isIterable:' + isIterable);
   } else {
-    const serverIndex = cluster.worker.id % serverUrls.length;
-    const serverUrl = serverUrls[serverIndex];
-    console.log('cluster.worker.id:' + cluster.worker.id + ";index:" + serverIndex + ";url:" + serverUrl);
+    const serverIndex = cluster.worker.id % serverParams.length;
+    const serverUrl = serverParams[serverIndex][0];
+    const account = serverParams[serverIndex][1];
+    const accountPassphrase = serverParams[serverIndex][2];
+    console.log(
+      'cluster.worker.id:' + cluster.worker.id + ";index:" + serverIndex + ";url:" + serverUrl + ";account:" + account +
+      ";accountPassphrase:" + accountPassphrase);
 
     Contract.setServer(serverUrl);
     Contract.setAccount(account, accountPassphrase);
@@ -83,14 +89,14 @@ function addElems(funcName, isByte, isIterable, outputFile, index, filesCount, f
   if (index < filesCount) {
     const val = 'worker:' + cluster.worker.id + ';index:' + index + ';time:' + Date.now();
     const valRepeat = val.repeat(Math.ceil(fileSize / val.length));
-    var data = isByte ? uint8ToArray(new Buffer(valRepeat)) : valRepeat;
+    let data = isByte ? uint8ToArray(new Buffer(valRepeat)) : valRepeat;
     let start = Date.now();
     console.log('start add');
     Contract[funcName + "Add"](data, function(error, result, txhash) {
       if (error) {
         callback(error);
       } else {
-        var docId = isIterable ? '0x'+result.toString(16) : result.toString();
+        let docId = isIterable ? '0x'+result.toString(16) : result.toString();
         let line = 'docId:' + docId + ',worker.id:' + cluster.worker.id + ',"' + val + '",length:' + data.length + ',txhash:'+txhash;
         console.log((Date.now() - start) + 'ms,' + line);
         fs.appendFile(outputFile, line + os.EOL, function(error) {
