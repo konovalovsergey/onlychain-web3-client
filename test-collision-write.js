@@ -89,7 +89,7 @@ function addElems(funcName, isByte, isIterable, outputFile, index, filesCount, f
   if (index < filesCount) {
     const val = 'worker:' + cluster.worker.id + ';index:' + index + ';time:' + Date.now();
     const valRepeat = val.repeat(Math.ceil(fileSize / val.length));
-    let data = isByte ? uint8ToArray(new Buffer(valRepeat)) : valRepeat;
+    let data = isByte ? new Buffer(valRepeat) : valRepeat;
     let start = Date.now();
     console.log('start add');
     Contract[funcName + "Add"](data, function(error, result, txhash) {
@@ -113,6 +113,3 @@ function addElems(funcName, isByte, isIterable, outputFile, index, filesCount, f
   }
 }
 
-function uint8ToArray(val) {
-  return Array.from ? Array.from(val) : Array.prototype.slice.call(val)
-}

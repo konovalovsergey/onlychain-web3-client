@@ -63,7 +63,7 @@ function checkFiles(index){
       if (error) {
         console.log(error);
       } else {
-        let val = isByte ? new Buffer(JSON.parse(Contract.getWeb3().toAscii(result))).toString() : result;
+        let val = isByte ? new Buffer(result).toString() : result;
         if (!val.startsWith(expect)) {
           let res = 'ERROR';
           errorIds.push([docId, expect]);
@@ -99,7 +99,7 @@ function findErrors(index, count){
       if (error) {
         console.log(error);
       } else {
-        let val = isByte ? new Buffer(JSON.parse(Contract.getWeb3().toAscii(result))).toString() : result;
+        let val = isByte ? new Buffer(result).toString() : result;
         for(let i = 0; i < errorIds.length; ++i){
           if(val.startsWith(errorIds[i][1])){
             var docId = isIterable ? '0x'+errorIds[i][0].toString(16) : errorIds[i][0].toString();

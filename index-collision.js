@@ -54,7 +54,7 @@ function mapStringsAdd(val, callback) {
   });
 }
 function mapBytesAdd(val, callback) {
-  const data = g_contract.addMapBytes.getData(val);
+  const data = g_contract.addMapBytes.getData(encodeHex(val));
   personalSendTransaction(data, function(error, result) {
     if (error) {
       callback(error);
@@ -78,7 +78,7 @@ function arrayStringsAdd(val, callback) {
   });
 }
 function arrayBytesAdd(val, callback) {
-  const data = g_contract.addArrayBytes.getData(val);
+  const data = g_contract.addArrayBytes.getData(encodeHex(val));
   personalSendTransaction(data, function(error, result) {
     if (error) {
       callback(error);
@@ -122,13 +122,25 @@ function mapStrings(index, callback) {
   g_contract.mapStrings(index, callback);
 }
 function mapBytes(index, callback) {
-  g_contract.mapBytes(index, callback);
+  g_contract.mapBytes(index, function(error, val) {
+    if (error) {
+      callback(error);
+    } else {
+      callback(error, decodeHex(val));
+    }
+  });
 }
 function arrayStrings(index, callback) {
   g_contract.arrayStrings(index, callback);
 }
 function arrayBytes(index, callback) {
-  g_contract.arrayBytes(index, callback);
+  g_contract.arrayBytes(index, function(error, val) {
+    if (error) {
+      callback(error);
+    } else {
+      callback(error, decodeHex(val));
+    }
+  });
 }
 function iterableMapping(hash, callback) {
   g_contract.iterableMapping(hash, callback);
@@ -261,6 +273,30 @@ function personalSendTransaction(data, callback) {
   g_web3.personal.sendTransaction({'to': g_contractAddress, 'gas': GAS_LIMIT, 'data': data},
                                   g_defaultAccountPassphrase,
                                   callback);
+}
+function decodeHex(s) {
+  var o = [];
+  var alpha = '0123456789abcdef';
+  for (var i = (s.substr(0, 2) == '0x' ? 2 : 0); i < s.length; i += 2) {
+    var index1 = alpha.indexOf(s[i]);
+    var index2 = alpha.indexOf(s[i + 1]);
+    if (index1 < 0 || index2 < 0)
+      throw("Bad input to hex decoding: " + s + " " + i + " " + index1 + " " + index2)
+    o.push(index1 * 16 + index2);
+  }
+  return o;
+}
+function encodeHex(val) {
+  var res = '';
+  for (var i = 0; i < val.length; ++i) {
+    var hex = val[i].toString(16);
+    if (hex.length > 1) {
+      res += hex;
+    } else {
+      res += '0' + hex;
+    }
+  }
+  return '0x' + res;
 }
 
 module.exports.setServer = setServer;

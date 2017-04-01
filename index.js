@@ -125,8 +125,8 @@ function getRecordsCount(callback) {
 
 function _writeChunks(docId, data, thumbnail, index, callback) {
 	const dataToWrite = data ? data : thumbnail;
-	const b64encoded = uint8ToArray(dataToWrite.subarray(index, index + CHUNK_SIZE));
-	const addTextData = g_contract.addBlock.getData(docId, b64encoded);
+	const dataEncoded = encodeHex(dataToWrite.subarray(index, index + CHUNK_SIZE));
+	const addTextData = g_contract.addBlock.getData(docId, dataEncoded);
 	personalSendTransaction(addTextData, function(error, result) {
 		if (error) {
 			callback(error);
@@ -148,7 +148,7 @@ function _readChunks(docId, meta, index, count, chunks, callback) {
 		if (error) {
 			callback(error);
 		} else {
-			chunks.push(arrayToUint8(JSON.parse(g_web3.toAscii(result))));
+			chunks.push(decodeHex(result));
 			if (index + 1 < count) {
 				_readChunks(docId, meta, index + 1, count, chunks, callback);
 			} else {
@@ -239,11 +239,29 @@ function personalSendTransaction(data, callback) {
 									g_defaultAccountPassphrase,
 									callback);
 }
-function uint8ToArray(val) {
-	return Array.from ? Array.from(val) : Array.prototype.slice.call(val)
+function decodeHex(s) {
+	var o = [];
+	var alpha = '0123456789abcdef';
+	for (var i = (s.substr(0, 2) == '0x' ? 2 : 0); i < s.length; i += 2) {
+		var index1 = alpha.indexOf(s[i]);
+		var index2 = alpha.indexOf(s[i + 1]);
+		if (index1 < 0 || index2 < 0)
+			throw("Bad input to hex decoding: " + s + " " + i + " " + index1 + " " + index2)
+		o.push(index1 * 16 + index2);
+	}
+	return o;
 }
-function arrayToUint8(val) {
-	return new Uint8Array(val);
+function encodeHex(val) {
+	var res = '';
+	for (var i = 0; i < val.length; ++i) {
+		var hex = val[i].toString(16);
+		if (hex.length > 1) {
+			res += hex;
+		} else {
+			res += '0' + hex;
+		}
+	}
+	return '0x' + res;
 }
 
 module.exports.setServer = setServer;
